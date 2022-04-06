@@ -120,8 +120,7 @@ def start_iperf(net):
     
     # TODO: Retrieve the hosts, replace with appropriate names
     h1 = net.get('h1')
-    h2 = net.get('h2')
-    
+  
     print("Starting iperf server...")
     # For those who are curious about the -w 16m parameter, it ensures
     # that the TCP flow is not receiver window limited.  If it is,
@@ -129,8 +128,9 @@ def start_iperf(net):
     server = h1.popen("iperf -s -w 16m")
     # TODO: Start the iperf client on h1 and h2.  Ensure that you create two
     # long lived TCP flows in both directions.
-    h1.cmd("iperf -c %s -t %s" % (h2.IP(), args.time+10))
-    h2.cmd("iperf -c %s -t %s" % (h1.IP(), args.time+10))
+    h2 = net.get('h2')
+    h2.cmd("iperf -c %s -t %s" % (h1.IP(), args.time))
+    h1.cmd("iperf -c %s -t %s" % (h2.IP(), args.time))
     
     
 def start_webserver(net):
@@ -152,15 +152,14 @@ def start_ping(net):
     h2 = net.get('h2')
     popen = h1.popen("ping -c %s -i 0.1 %s > %s/ping.txt" % (args.time*10, h2.IP(), args.dir), shell=True)
     popen.communicate()
-
-    return
-
+    
 def get_timings(net, h1, h2):
     timings = []
     for i in range(3):
-        fetch = "curl -o /dev/null -s -w %{time_total} " + h1.IP() + "/http/index.html"
-        time = h2.popen(fetch).communicate()[0]
-        timings.append(float(time))
+        fetch = "curl -o index.html -s -w %%{time_total} %s/http/index.html" %(h1.IP())
+        time = h2.popen(fetch, shell=True, stdout=PIPE)
+        duration = float(time.stdout.read())
+        timings.append(duration)
 
     return mean(timings)
 
@@ -193,10 +192,8 @@ def tcp():
                       outfile='%s/q.txt' % (args.dir))
     
     # TODO: Start iperf, webservers, etc.
-    iperf_proc = Process(target=start_iperf, args=(net,))
-    ping_proc = Process(target=start_ping, args=(net,))
-    iperf_proc.start()
-    ping_proc.start()
+    start_iperf(net)
+    start_ping(net)
     start_webserver(net)
     
 
@@ -234,11 +231,10 @@ def tcp():
     # emulated hosts h1 and h2.
     # CLI(net)
 
-    #stop_tcpprobe()
+    cleanup()
+    stop_tcpprobe()
     qmon.terminate()
-    iperf_proc.terminate()
-    ping_proc.terminate()
-    net.stop()
+    #net.stop()
     # Ensure that all processes you create within Mininet are killed.
     # Sometimes they require manual killing.
     Popen("pgrep -f webserver.py | xargs kill -9", shell=True).wait()

@@ -1,7 +1,7 @@
 # EEE4121F: Module B Lab 1
 The steps below explain how to replicate the results from the experiment and where to find the results:
 
-1. Install the statistics library using "sudo pip install statistics"
+1. If you haven't already, install the statistics library using "sudo pip install statistics"
 2. Run "chmod +x tcp.py" to compile the tcp.py file
 3. Run "chmod +x run.sh" to compile the run.sh shell file
 4. Run "sudo ./run.sh" to run all the experiments

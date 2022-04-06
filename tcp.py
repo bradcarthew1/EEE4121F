@@ -11,6 +11,7 @@ from mininet.net import Mininet
 from mininet.log import lg, info
 from mininet.util import dumpNodeConnections
 from mininet.cli import CLI
+from mininet.clean import cleanup
 
 from subprocess import Popen, PIPE
 from time import sleep, time
@@ -18,6 +19,8 @@ from multiprocessing import Process
 from argparse import ArgumentParser
 
 from monitor import monitor_qlen
+from statistics import stdev
+from statistics import mean
 import termcolor as T
 
 import sys
@@ -77,32 +80,32 @@ args = parser.parse_args()
 class TCPTopo(Topo):
     "Simple topology for TCP experiment."
 
-def build(self, n=2):
-	# TODO: create two host
-	hosts = []
-	for h in range (n):
-		hosts.append(self.addHost('h%s' % (h+1)))
-	# Here I have created a switch.  If you change its name, its
-	# interface names will change from s0-eth1 to newname-eth1.
-	switch = self.addSwitch('s0')
-	# TODO: Add links with appropriate characteristics
-	h1 = hosts[0]
-	h2 = hosts[1]
-	bw_host = args.bw_host
-	bw_net = args.bw_net
-	delay = args.delay
-	maxq = args.maxq
-	self.addLink(h1, switch, bw=bw_host, delay='%sms' % delay, max_queue_size=maxq)
-	self.addLink(switch, h2, bw=bw_host, delay='%sms' % delay, max_queue_size=maxq) 
-	return
+    def build(self, n=2):
+	    # TODO: create two host
+	    hosts = []
+	    for h in range (n):
+		    hosts.append(self.addHost('h%s' % (h+1)))
+	    # Here I have created a switch.  If you change its name, its
+	    # interface names will change from s0-eth1 to newname-eth1.
+	    switch = self.addSwitch('s0')
+	    # TODO: Add links with appropriate characteristics
+	    h1 = hosts[0]
+	    h2 = hosts[1]
+	    bw_host = args.bw_host
+	    bw_net = args.bw_net
+	    delay = args.delay
+	    maxq = args.maxq
+	    self.addLink(h1, switch, bw=bw_host, delay='%sms' % delay, max_queue_size=maxq)
+	    self.addLink(switch, h2, bw=bw_host, delay='%sms' % delay, max_queue_size=maxq) 
+	    return
 
-# Simple wrappers around monitoring utilities.  You are welcome to
-# contribute neatly written (using classes) monitoring scripts for
-# Mininet!
-# def start_tcpprobe(outfile="cwnd.txt"):
-#     os.system("rmmod tcp_probe; modprobe tcp_probe full=1;")
-#     Popen("cat /proc/net/tcpprobe > %s/%s" % (args.dir, outfile),
-#           shell=True)
+    # Simple wrappers around monitoring utilities.  You are welcome to
+    # contribute neatly written (using classes) monitoring scripts for
+    # Mininet!
+    # def start_tcpprobe(outfile="cwnd.txt"):
+    #     os.system("rmmod tcp_probe; modprobe tcp_probe full=1;")
+    #     Popen("cat /proc/net/tcpprobe > %s/%s" % (args.dir, outfile),
+    #           shell=True)
 
 def stop_tcpprobe():
     Popen("killall -9 cat", shell=True).wait()
@@ -162,11 +165,13 @@ def get_timings(net, h1, h2):
     return mean(timings)
 
 def tcp():
-    print("hello")
     if not os.path.exists(args.dir):
-        	os.makedirs(args.dir)
+        os.makedirs(args.dir)
     os.system("sysctl -w net.ipv4.tcp_congestion_control=%s" % args.cong)
     os.system("sysctl -w net.core.default_qdisc=%s" % args.qman)
+
+    cleanup()
+    
     topo = TCPTopo()
     net = Mininet(topo=topo, host=CPULimitedHost, link=TCLink)
     net.start()
@@ -191,7 +196,7 @@ def tcp():
     iperf_proc = Process(target=start_iperf, args=(net,))
     ping_proc = Process(target=start_ping, args=(net,))
     iperf_proc.start()
-    ping_proc.start
+    ping_proc.start()
     start_webserver(net)
     
 
@@ -221,23 +226,22 @@ def tcp():
        
     # TODO: compute average (and standard deviation) of the fetch
     # times.  
-    print("Writing results...")
-    f = open("./results.txt", "w+")
-    f.write("average: %s \n" % mean(measurements))
-    f.write("std dev: %s \n" % stdev(measurements))
-    f.close()
+    print("Average get time: %s" % mean(measurements))
+    print ("Standard deviation of get times: %s" % stdev(measurements))
 
     # Hint: The command below invokes a CLI which you can use to
     # debug.  It allows you to run arbitrary commands inside your
     # emulated hosts h1 and h2.
     # CLI(net)
 
-    stop_tcpprobe()
+    #stop_tcpprobe()
     qmon.terminate()
+    iperf_proc.terminate()
+    ping_proc.terminate()
     net.stop()
     # Ensure that all processes you create within Mininet are killed.
     # Sometimes they require manual killing.
     Popen("pgrep -f webserver.py | xargs kill -9", shell=True).wait()
 
-    if __name__ == "__main__":
-    	tcp()
+if __name__ == "__main__":
+    tcp()

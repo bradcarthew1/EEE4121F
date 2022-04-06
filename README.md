@@ -1,5 +1,5 @@
 # EEE4121F: Module B Lab 1
-The steps below explain how to replicate the results from the experiment:
+The steps below explain how to replicate the results from the experiment and where to find the results:
 
 1. Run "chmod +x tcp.py" to compile the tcp.py file
 2. Run "chmod +x run.sh" to compile the run.sh shell file

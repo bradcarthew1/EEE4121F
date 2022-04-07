@@ -87,16 +87,17 @@ class TCPTopo(Topo):
 		    hosts.append(self.addHost('h%s' % (h+1)))
 	    # Here I have created a switch.  If you change its name, its
 	    # interface names will change from s0-eth1 to newname-eth1.
-	    switch = self.addSwitch('s0')
-	    # TODO: Add links with appropriate characteristics
+	    switch = self.addSwitch('s0') # TODO: Add links with appropriate characteristics
 	    h1 = hosts[0]
 	    h2 = hosts[1]
-	    bw_host = args.bw_host
-	    bw_net = args.bw_net
-	    delay = args.delay
-	    maxq = args.maxq
-	    self.addLink(h1, switch, bw=bw_host, delay='%sms' % delay, max_queue_size=maxq)
-	    self.addLink(switch, h2, bw=bw_host, delay='%sms' % delay, max_queue_size=maxq) 
+	    #bw_host = args.bw_host
+	    #bw_net = args.bw_net
+	    #delay = args.delay
+	    #maxq = args.maxq
+	    #self.addLink(h1, switch, bw=bw_host, delay=delay, max_queue_size=maxq)
+	    #self.addLink(switch,h2, bw=bw_host, delay=delay, max_queue_size=maxq) 
+	    self.addLink(h1,switch, bw=args.bw_host, delay=args.delay, max_queue_size=args.maxq)
+	    self.addLink(h2,switch, bw=args.bw_net, delay=args.delay, max_queue_size=args.maxq)
 	    return
 
     # Simple wrappers around monitoring utilities.  You are welcome to
@@ -216,7 +217,7 @@ def tcp():
     while True:
         # do the measurement (say) 3 times.
         measurements.append(get_timing(net, h1, h2))
-        sleep(5)
+        #sleep(5)
         now = time()
         delta = now - start_time
         if delta > args.time:
@@ -238,7 +239,7 @@ def tcp():
     iperf_proc.terminate()
     ping_proc.terminate()
     qmon.terminate()
-    net.stop()
+    #net.stop()
     # Ensure that all processes you create within Mininet are killed.
     # Sometimes they require manual killing.
     #Popen("pgrep -f webserver.py | xargs kill -9", shell=True).wait()
